@@ -1,0 +1,605 @@
+---
+title: "BIOSCI738 Assignment 2"
+output:
+  pdf_document: default
+  word_document: default
+date: '2022-03-31'
+---
+```{r, echo=FALSE}
+options(repos = list(CRAN="http://cran.rstudio.com/"))
+```
+
+**Question 1** [15 Marks]
+
+
+**Experimental design:**
+
+| Experiment |Potato Type | Treatment Type | Cover Type |
+|------------|:----------:|:--------------:|-----------:|
+|1 | Store-bought potatoes that had gone green | Wrist-deep symmetric planting method | Mulched |
+|2 | Nursery Seed potatoes (x2 varieties)| Buried in furrows | Backfilling |
+|3 | Nursery Seed potatoes (x2 varieties)| Wrist-deep symmetric planting method | Mulched |
+
+
+**Results:** 
+
+- 1: Visibly describes many surface potatoes;states the potato plants did not look healthy in their growth stage; numerous small potatoes and a couple of 'decent sized' potatoes
+
+- 2: Sprouted earlier; 'eyeball-method' looks like a "decent haul"
+
+- 3: Second-healthiest looking potato plants while growing; 'eyeball-method' says the potatoes are better quality and higher yield
+
+He claims using the 'eyeball method' that the piles don't look quite as different as he thought. Treatment group 1 certainly wasn't of the same quality or yield but it was not significantly different. He claimed that treatment group 2 was likely the best method based on output. 
+Not all that much visible difference between the planting methods of the two seed potatoes 
+
+
+**Discussion of the experimental design**
+
+His methods seem reasonable. As the plots are in the same locations the weather and rainfall variables are considered. In saying that, it would have been more experimentally-thorough if he had included another treatment group where the old potatoes were planted using the furrow method to ensure this is not where the variation lies, rather than in the type of potato. 
+
+**Critiques:**
+
+As well as the above criticism regarding the variable not accounted for, he also could have been more thorough in quantifying his results. I think weighing the potatoes would have been a really simple but effective way to quantify a result, ie mass of potatoes produced per treatment method. He also could have used average diameter of potato or number of potatoes/m2. 
+
+
+```{r, echo=FALSE, results='hide', message=FALSE}
+data <- readxl::read_xlsx("heather_all.xlsx", skip = 2, sheet = 3)
+
+##set up the data 
+library(tidyverse)
+data %>%
+  select(c("Block!", "Treatment!","Year!", "Total natives")) %>%
+  rename("block" = "Block!", "treatment" = "Treatment!", "year" = "Year!",
+         "natives" = "Total natives") %>%
+  mutate(treatment = as_factor(treatment))%>%
+  mutate(treatment = treatment%>%
+         fct_relevel("Control", "Biocontrol", "Herbicide", "Herbicide and Biocontrol"))
+```
+\pagebreak
+**Question 2** [35 Marks]
+
+a) What is the experimental and the observational unit in this experiment?
+
+The experimental unit is the plot. 
+The observational unit is each quadrat (corner) of the plot, with 4 total observational units/experimental unit. 
+
+b) Treatment factor and levels
+
+The treatment factor in this case is the method of control for heather growth. 
+The levels of this treatment factor are: control, biocontrol, herbicide and herbicide + biocontrol. There are 6 replications of each treatment level across the experiment, with a total number of 4 observations per replication therefore 24 observations per level. The treatment levels are randomized across the 6 blocks to avoid any biased effect of placement. They have also controlled for the sprays applied by applying a water spray to the treatment level without any herbicide or insecticide. 
+
+
+```{r, echo=FALSE, results='hide', include=FALSE}
+##creating the data and prelim violin plots etc 
+data <- readxl::read_xlsx("heather_all.xlsx", skip = 2, sheet = 3)
+data
+
+library("predictmeans")
+library(tidyverse)
+data <- data %>%
+  select(c("Block!", "Treatment!","Year!", "Total natives")) %>%
+  rename("block" = "Block!", "treatment" = "Treatment!", "year" = "Year!",
+         "natives" = "Total natives") %>%
+  mutate(treatment = as_factor(treatment))  
+  
+
+
+## making the violin plots 
+library(ggplot2)
+library(ggpubr)
+
+
+# Basic violin plot per year 
+#2008
+violplot_eight <- ggplot(subset(data, year %in% c("2008")))+ 
+                           geom_violin(aes(x=as.factor("2008"), y=natives, fill=treatment))+
+  labs(x="", y="total natives", title="1. Data Spread 2008") +
+  coord_cartesian(ylim = c(4, 17))
+violplot_eight
+
+#2009
+violplot_nine <- ggplot(subset(data, year %in% c("2009")))+ 
+  geom_violin(aes(x=as.factor("2009"), y=natives, fill=treatment))+
+  labs(x="", y="total natives", title="2. Data Spread 2009")+
+  coord_cartesian(ylim = c(4, 17))
+violplot_nine
+
+#2010
+violplot_ten <- ggplot(subset(data, year %in% c("2010")))+ 
+  geom_violin(aes(x=as.factor("2010"), y=natives, fill=treatment))+
+  labs(x="", y="total natives", title="3. Data Spread 2010")+
+  coord_cartesian(ylim = c(4, 17))
+violplot_ten
+
+#2012
+violplot_twelve <- ggplot(subset(data, year %in% c("2012")))+ 
+  geom_violin(aes(x=as.factor("2012"), y=natives, fill=treatment))+
+  labs(x="", y="total natives", title="4. Data Spread 2012")+
+  coord_cartesian(ylim = c(4, 17))
+violplot_twelve
+```
+
+
+
+```{r, echo=FALSE}
+##the actual plot
+ggarrange(violplot_eight, violplot_nine, violplot_ten, violplot_twelve,
+          ncol = 2, nrow = 2, common.legend = TRUE)
+```
+
+
+Interpreting the violin plots:
+
+Violin plots are useful for the visualisation of the spread of data over a given time period or experiment. The length of the violin indicates the range of the data within the data set, while the width shows the frequency at any given data point.
+In the above plot, you can see that the number of natives most likely differs between the treatment levels. The two treatment levels containing herbicide show lower total natives across a number of the years. From this data you could tentatively say that the biocontrol-only treatment is the least likely to reduce total natives species richness.
+
+c) Fitting a one-way analysis of variance model
+
+**lm(formula = natives ~ treatment, data = data)**
+
+Coefficients:
+
+Estimates:
+(Intercept)                          10.79       
+treatmentControl                     -0.88        
+treatmentHerbicide                   -0.58         
+treatmentHerbicide and Biocontrol    -2.25      
+
+```{r, echo=FALSE, results='hide'}
+oneway_model <- lm(natives ~ treatment, data = data)
+#print(summary(oneway_model), digits = 2)
+summary(oneway_model)
+```
+
+d) Pair-wise comparison of means
+
+```{r, echo=FALSE, warning=FALSE}
+
+## pairwise comparison of means 
+
+pm <- predictmeans::predictmeans(oneway_model, modelterm = "treatment", pairwise = TRUE, plot = FALSE)
+#pm_nonpair <- predictmeans::predictmeans(oneway_model, modelterm = "treatment", pairwise = FALSE, plot = FALSE)
+
+my_pm_comparisons_function <- function(pm){
+  ## treatment names
+  nms <- colnames(pm$`Pairwise LSDs`)
+  ## comparison names
+  c_names <- outer(nms, nms, function(x, y) paste(x, "-", y, sep = ""))
+  ## unique comparison names
+  names <- c_names[upper.tri(c_names)]
+  ## extract bit of predictmeant outpur
+  LSD_matrix <- pm[[5]]
+  pwise_p <- pm$`Pairwise p-value`
+  LSD <- LSD_matrix[lower.tri(LSD_matrix)]
+  diffs <- LSD_matrix[upper.tri(t(LSD_matrix))]
+  tstats <- pwise_p[upper.tri(pwise_p)]
+  pvalues <- pwise_p[lower.tri(pwise_p)]
+  SED <- pm$`Standard Error of Differences`
+  L95    <- diffs-LSD
+  U95    <- diffs+LSD
+  ## create dataframe with needed elements
+  results <- data.frame(differences = diffs, 
+                        LSD = LSD, 
+                        tstatistic = tstats, 
+                        SED = SED, 
+                        Lower95CI = L95,
+                        Upper95CI = U95,
+                        pvalue = pvalues)
+  ## append comparison names as rownames
+  rownames(results) <- names
+  ## return data frame
+  return(results)
+}
+my_pm_comparisons_function(pm)
+
+```
+
+
+The (intercept) of our regression line is essentially an estimation of the mean of our first treatment level (Biocontrol). The estimated coefficients for treatmentControl, treatmentHerbicide, treatmentHerbicide and Biocontrol, are all have negative coefficients. This suggests that compared to the Biocontrol treatment, natives species tend to decrease with all other treatment levels, including no treatment. 
+We then pairwise compare the predicted means of the treatment groups to ascertain which treatment groups show significant evidence of difference between each other. The only groups that show enough evidence of a difference using this model at confidence alpha = 0.05 is Control v Herbicide and Herbicide v Herbicide & Biocontrol
+
+The predicted treatment means (using my predicted means function) are as follows,:
+
+
+**Treatment**             **Predicted means** 
+Control                   9.916667
+Biocontrol                10.791667      
+Herbicide                 10.208333      
+Herbicide & Biocontrol    8.541667 
+
+The above means show an average of the total native species richness across the 4 treatment groups, with the 4 years and all replications of the experiment combined into a single data point. From this very surface information, we may start to think that biocontrol treatments and herbicide treatments could increase the number of native species while herbicide & biocontrol look as though it reduces species richness. 
+
+
+e) Is this model appropriate for the data?
+
+The residuals in the linear model show relative symmetry in distribution ie the residuals show a normal distribution, which can indicate the model is a good fit. 
+
+We can also test this using plots as follows, to check whether the underlying assumptions of the model are met: 
+
+```{r, echo=FALSE, warning=FALSE}
+gglm::gglm(oneway_model)
+```
+
+**Residuals v Fitted plot** 
+This plot is used to measure whether there is equal variance in the experiment. Grouping around the zero line is a sign that your model isn't fit for purpose. In the above residuals v fitted values plot, the data forms straight lines due to the discrete treatment variable. The data does not seem to form a distinguishable pattern and they are mostly equally distributed away from the zero line, except for a couple of points - indicating that the variance can mostly be explained by this model but there is some variance this model cannot explain/fit. 
+
+**Q-Q plot** 
+Is used to diagnose the underlying assumption that our data fits a reasonably normal distribution. Our data mostly fits the line except for some deviation at the tail ends, but I think it mostly fits the normal distribution.
+
+**Scale-location plot** 
+Here we are looking at the average magnitude of the standardised residuals and whether they change because of the fitted values. We are looking for the line to be approximately horizontal. For this plot, the assumption of homoscedasticity is probably satisfied. We can also see there is no visible pattern, i.e. roughly equal variability. 
+
+**Residuals v leverage plot** 
+Tracks how the spread of standardised residuals changes as the leverage changes. It can help detect outliers. It would seem that the leverage for all data is the same but I am unsure how to interpret due to the discrete nature of the treatment used. 
+
+Based on the above, I believe that the linear model is acceptable but that we likely can fit a better model. This is supported by the R-squared value I got when I ran the model, which was:
+
+**Multiple R-squared:  0.1,	Adjusted R-squared:  0.074**
+
+You generally use R-squared as a measure of how well the model is fitting is fitting the data, and approximates how much of the variance in the response variable can be explained by the explanatory variable. An R-squared closer to 1 (than 0) is considered to explain more of the variance seen in the results and therefore the model is a good fit. My R-squared value indicates that maybe there is another variable that is acting on the results that should be combined. 
+
+
+f) Fit two full interaction models where year is treated as a factor
+
+```{r, echo=FALSE}
+## fitting two interaction models where year is treated as a factor 
+#1. treatment*year 
+twoway_model <- lm(natives ~ treatment*year, data = data)
+anova(twoway_model)
+```
+
+```{r, echo=FALSE}
+#2. year*treatment
+twoway_year <- lm(natives ~ year*treatment, data = data)
+anova(twoway_year)
+```
+For both models, the residual sum of squares is as follows:
+
+**553.53**
+
+Evidently, the residual sums of squares for both interaction models are the same. The residual sum of squares is a measure of how much of the response variable's variation is not explained by our interaction model. The above value is quite high which leads me to believe that these models do not fit the data well and do not explain variance adequately.
+
+
+Below is the results of a type II ANOVA on the two-way model: 
+
+```{r, echo=FALSE}
+#type II anova on the two way model
+car::Anova(twoway_model, type = 2)
+```
+ We can see that the above table is almost identical to the original anova's we ran. For Type II anovas, the order of the factors does not matter which is the opposite of the type I anova previously. Therefore, it makes sense that the values are the same as we have already established this model is not a good fit and that the interaction model doesn't work for the data we have. 
+
+g) Fit linear mixed-effect models to the data 
+
+In this experiment, the experimental units are split into blocks to control variation. Here we are aiming to partition potential sources of variation that are not useful to the hypothesis. 
+
+```{r, echo=FALSE, results='hide', warning=FALSE}
+data$year <- as.factor(data$year)
+
+#creating four models for multi level marketing i mean linear mixed-effect models
+lmer_one <- lme4::lmer(natives ~ treatment + (1|block), data = data)
+summary(lmer_one)
+
+lmer_two <- lme4::lmer(natives ~ treatment + year + (1|block), data = data)
+summary(lmer_two)
+
+lmer_three <- lme4::lmer(natives ~ treatment:year + (1|block), data = data)
+summary(lmer_three)
+
+lmer_four <- lme4::lmer(natives ~ treatment*year + (1|block), data = data)
+summary(lmer_four)
+```
+The below is a pair-wsie comparison of four linear mixed-effect models using the block as a random effect with different orders the variables **treatment** and **year**. 
+
+```{r, echo=FALSE, warning=FALSE}
+#anova-ing the above models 
+anova(lmer_two, lmer_three, lmer_four, lmer_one)
+```
+
+You can see the error message 'refitting model(s) with ML (instead of REML)'. This means that maximum likelihood fit better for the data than residual maximum likelihood. 
+The above results show that models 1 and 2 are a better fit than models 3 & 4 through the AIC and BIC values for the latter being lower overall. Of models 1 & 2, model 1 has the lowest BIC, though an identical AIC. This leads me to believe that model 1 is the best model for the data. The deviance of each model follows the same principle: ie lower value = better fit. This is interesting as the deviance does not have the same result as the other two parameters, with model 3 & 4 having the lowest. Based on the above information and the high p-values of the other models, I believe model 1 is the best model. 
+
+
+h) Use the predictmeans function to perform pairwise comparisons of mean counts between the treatment groups for model i. 
+
+```{r, echo=FALSE, warning=FALSE}
+##use predictmeans to do pairwise on model i. 
+pm1 <- predictmeans::predictmeans(lmer_one, modelterm = "treatment", pairwise = TRUE, plot = FALSE)
+my_pm_comparisons_function(pm1)
+```
+
+From the above output, I can draw conclusions regarding the data.  The treatment levels in which evidence of a difference is strong enough to draw conclusions is the following:
+Comparison                          p-value   
+Control v Herbicide                 0.0001
+Control v Herbicide & Biocontrol    0.0123
+Herbicide v Herbicide & Biocontrol  0.0026 
+The above p values show we have reasonable evidence to conclude that the treatments affect native species richness in different ways, ie that we can reject the null hypothesis that the treatments all have the same effect. Particularly, compared to the control, herbicide increases native species richness. Herbicide & Biocontrol treatment, however, reduces native species richness compared to both the control and the herbicide treatment. 
+
+i) Perform pairwise comparison for HvH&B using Bonferroni's and Tukeys HSD and present them. Consider how the three CIs are calculated. In addition, briefly explain how Fisher’s LSD, the Bonferroni correction and Tukey’s HSD control the family-wise error rate.
+
+
+```{r, echo=FALSE, results='hide', warning=FALSE}
+#subset the herbicide v herbcide and biocontorl
+herbcide_hb_data <- data[!(data$treatment =="Control" | data$treatment=="Biocontrol"),]%>%
+  mutate(year = as_factor(year))
+herbcide_hb_data
+
+#mdoel i for subset data 
+lmer_herbicide <- lme4::lmer(natives ~ treatment + (1|block), data = herbcide_hb_data)
+```
+
+
+**Bonferroni's Adjustment:** 
+
+```{r, echo=FALSE, warning=FALSE, results='hide'}
+alpha.adj <- 0.05/choose(2,2)
+bonferroni <-  predictmeans::predictmeans(lmer_herbicide, 
+                                          modelterm = "treatment", 
+                                          adj = "bonferroni",
+                                          level = alpha.adj,
+                                          pairwise = TRUE, 
+                                          plot = FALSE)
+
+
+
+#ucking huuuuge function to call this bonferroni table with the subset data 
+
+comparison_names <- function(pm){
+  
+  trtNames <- colnames(pm$`Pairwise LSDs`)
+  # Paste pairs of names with "-" between them to show comparison
+  comparison <- NULL
+  k <- 1
+  for(i in 1:(length(trtNames)-1))
+    for(j in (i+1):length(trtNames)){
+      comparison[k] <- paste(trtNames[i], " - ", trtNames[j], sep="")
+      k <- k+1
+    }
+  comparison
+  
+}
+#' Function to create a pairwise comparison table
+#' from the output of predictmeans::predictmeans()
+
+simple_comparisons <- function(pm){
+  
+  # Get names of comparisons
+  comparisonNames <- comparison_names(pm)
+  
+  # Extract Pairwise LSDs and Pairwise p-values matrices from pm
+  LSD.mat  <- pm[[5]]
+  pVal.mat <- pm[[6]]
+  
+  # Extract all info and put in dataframe 
+  diffs  <- t(LSD.mat)[lower.tri(t(LSD.mat))]
+  lsds   <- LSD.mat[lower.tri(LSD.mat)]
+  tstats <- t(pVal.mat)[lower.tri(t(pVal.mat))]
+  seds   <- abs(diffs)/abs(tstats)
+  lwr    <- diffs-1.18641781073
+  upr    <- diffs+1.18641781073
+  pvals  <- pVal.mat[lower.tri(pVal.mat)]
+  results.df <- data.frame(Comparison=comparisonNames, 
+                           Difference=round(diffs,4), 
+                           SED=round(seds,4), t=round(tstats,4),
+                           LSD=round(lsds,4),
+                           lwr=round(lwr,4),
+                           upr=round(upr,4),
+                           p=round(pvals,4))
+  
+  # Return dataframe of summary stats
+  results.df
+  
+}
+
+#' Function to create a pairwise comparison table
+#' from the output of predictmeans::predictmeans()
+#' 
+comparisons <- function (pm, model.term, wald.tab, alpha, 
+                         digits = c(3, 4), 
+                         eps = NULL) 
+{
+  # Get names of comparisons
+  comparisonNames <- comparison_names(pm)
+  
+  if (length(pm) > 6) {
+    if (class(pm) == "alldiffs") {
+      if (missing(model.term) | missing(wald.tab) | missing(alpha)) 
+        stop("model.term, wald.tab, and/or alpha missing.")
+      keep <- row.names(wald.tab) == model.term
+      denDF <- wald.tab$denDF[keep]
+      LSD.mat <- qt(1 - alpha/2, denDF) * pm$sed
+      if (!is.null(eps)) 
+        pm$differences[abs(pm$differences) < eps] <- 0
+      LSD.mat[upper.tri(LSD.mat)] <- pm$differences[upper.tri(pm$differences)]
+      pVal.mat <- pm$p.differences
+      t.stat <- pm$differences/pm$sed
+      pVal.mat[upper.tri(pVal.mat)] <- t.stat[upper.tri(t.stat)]
+    }
+    else {
+      LSD.mat <- pm[[5]]
+      pVal.mat <- pm[[6]]
+    }
+  }
+  else if (length(pm) == 5) {
+    pVal.mat <- pm[[5]]
+    LSD.mat <- matrix(0, nrow = nrow(pVal.mat), ncol = ncol(pVal.mat))
+    LSD.mat[lower.tri(LSD.mat)] <- pm[[4]][3]
+    meandiffs.mat <- outer(pm[[1]], pm[[1]], "-")
+    LSD.mat[upper.tri(LSD.mat)] <- meandiffs.mat[superior.tri(meandiffs.mat)]
+  }
+  else stop("Error in predictmeans or alldiffs list.")
+  diffs <- t(LSD.mat)[lower.tri(t(LSD.mat))]
+  lsds <- LSD.mat[lower.tri(LSD.mat)]
+  tstats <- t(pVal.mat)[lower.tri(t(pVal.mat))]
+  if (class(pm) == "alldiffs") 
+    seds <- pm$sed[lower.tri(pm$sed)]
+  else seds <- diffs/tstats
+  lwr <- diffs - 1.18641781073
+  upr <- diffs + 1.18641781073
+  pvals <- pVal.mat[lower.tri(pVal.mat)]
+  results.df <- data.frame(Comparison =  comparisonNames, 
+                           "Calculated difference" = diffs, 
+                           SED = seds, "Bon LSDs" = 1.18641781073,
+                           "Lower 95% CI" = lwr, "Upper 95% CI" = upr, 
+                           "t-statistic" = tstats, "P-value" = pvals, check.names = FALSE)
+  results.df
+}
+
+```
+```{r, echo=FALSE}
+comparisons(bonferroni)
+```
+
+
+**Tukey's HSD Adjustment:**
+
+HSD value as below:
+```{r, echo=FALSE, results='hide'}
+#tukeys
+
+aov_mod <- aov(natives ~ treatment + (1|block), data = herbcide_hb_data)
+summary(aov_mod)
+
+
+HSD <- (qtukey(p = 1 - 0.05, nmeans = 2, df = 48 - 2)/sqrt(2))*sqrt(2 * 6.78/6)
+
+```
+
+```{r, echo=FALSE}
+HSD
+```
+
+Table of Tukey's adjustment with CI's: 
+
+```{r, echo=FALSE}
+#fitting the tukeys HSD into the pairwise function 
+tukey <- predictmeans::predictmeans(lmer_herbicide,
+                                   modelterm = "treatment", adj = "tukey",
+                                   level = alpha.adj,
+                                   pairwise = TRUE, plot = FALSE)
+tukey$`Predicted Means`
+
+all_diffs <- outer(tukey$`Predicted Means`, tukey$`Predicted Means`, "-")
+comparison_table <- data.frame(Comparisons = "Herbicide and Biocontrol - Herbicide", differences = all_diffs[lower.tri(all_diffs)]) %>%
+  mutate(upper = differences + HSD, 
+         lower = differences - HSD, 
+         HSD = HSD)
+
+comparison_table
+```
+
+
+Analysis of the Confidence Intervals: 
+
+The confidence interval is determined by the estimate value +/- the scale factor multiplied by the standard error of the estimate. Therefore, choosing our scale factor affects the confidence intervals of our estimate. 
+Fisher's LSD (the default), Bonferroni's adjustment and Tukey's Honest Significant Difference are all scale factors we can use. 
+Fisher's LSD uses the t-distribution (calculated as a function of the alpha/2 and degrees of freedom) multiplied by the standard error to get the least significant difference, which is then used to calculate the intervals. 
+Bonferroni's is similar to Fisher's except that it includes divides the alpha value by an additional argument, k, that divides the number of treatment groups by 2. Therefore, it adjusts for treatment levels and that number will affect the outcome. 
+Tukey's HSD does not use the t-distribution, and instead uses a studentised range which uses the alpha value, number of treatment groups and degrees of freedom. This number is then divided by the square root of 2 and multiplied by the square root of the residual mean square error and the number of replicates in the experiment. 
+
+The family-wise error rate is the risk of making at least one Type I error among the family of comparisons and this number increases with the number of hypothesis tests carried out. Bonferroni's adjustment is a single-step procedure that controls the FWER by adjusting the alpha level based on the number of treatment levels ie alpha/number of tests. Tukey's method controls the family-wise error rate across all pair-wise comparisons at a specified level across all tests. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+#question j data wrangling 
+data_all <- readxl::read_xlsx("heather_all.xlsx", skip = 2, sheet = 3)
+data_all <- data_all %>%
+  rename("block" = "Block!", "treatment" = "Treatment!", "year" = "Year!",
+         "tot" = "Total natives", "calluna_v" = "Calluna vulgaris", "exotic_di" = "Other exotic dicots",
+         "native_di" = "Total native dicots", "tot_bryo" = "Total bryophytes", "tot_native_mono" = "Total native monocots",
+         "tot_exotic_mono" = "Tot exotic monocots", "tot_exotic" = "Total exotics",
+         "tot_native" = "Total natives") %>%
+  mutate(treatment = as_factor(treatment))
+
+
+data_wrangled <- subset(data_all, treatment %in% c("Herbicide", "Biocontrol"))%>% 
+  group_by(treatment)
+
+
+install.packages("lmerTest")
+library(lmerTest)
+```
+j) model all of the plant groups against treatments Herbicide and Biocontrol 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+##model 1
+mod_calluna <- lmerTest::lmer(`calluna_v` ~ treatment + (1|block), data = data_wrangled)
+
+pm_calluna <- predictmeans::predictmeans(mod_calluna, modelterm = "treatment",
+                                       pairwise = TRUE, plot = FALSE)
+calluna_p <- pm_calluna$`Pairwise p-value`[2,1]
+
+#2
+mod_exoticdi <- lmerTest::lmer(`exotic_di` ~ treatment + (1|block), data = data_wrangled)
+
+pm_exoticdi <- predictmeans::predictmeans(mod_exoticdi, modelterm = "treatment",
+                                         pairwise = TRUE, plot = FALSE)
+exoticdi_p <- pm_exoticdi$`Pairwise p-value`[2,1]
+
+#3
+mod_native_di <- lmerTest::lmer(`native_di` ~ treatment + (1|block), data = data_wrangled)
+
+pm_native_di <- predictmeans::predictmeans(mod_native_di, modelterm = "treatment",
+                                          pairwise = TRUE, plot = FALSE)
+native_di_p <- pm_native_di$`Pairwise p-value`[2,1]
+
+#4
+mod_tot_bryo <- lmerTest::lmer(`tot_bryo` ~ treatment + (1|block), data = data_wrangled)
+
+pm_tot_bryo <- predictmeans::predictmeans(mod_tot_bryo, modelterm = "treatment",
+                                           pairwise = TRUE, plot = FALSE)
+tot_bryo_p <- pm_tot_bryo$`Pairwise p-value`[2,1]
+
+#5
+mod_tot_native_mono <- lmerTest::lmer(`tot_native_mono` ~ treatment + (1|block), data = data_wrangled)
+
+pm_tot_native_mono <- predictmeans::predictmeans(mod_tot_native_mono, modelterm = "treatment",
+                                          pairwise = TRUE, plot = FALSE)
+tot_native_mono_p <- pm_tot_native_mono$`Pairwise p-value`[2,1]
+
+#6
+mod_tot_exotic_mono <- lmerTest::lmer(`tot_exotic_mono` ~ treatment + (1|block), data = data_wrangled)
+
+pm_tot_exotic_mono <- predictmeans::predictmeans(mod_tot_exotic_mono, modelterm = "treatment",
+                                                 pairwise = TRUE, plot = FALSE)
+tot_exotic_mono_p <- pm_tot_exotic_mono$`Pairwise p-value`[2,1]
+
+#7
+mod_tot_exotic <- lmerTest::lmer(`tot_exotic` ~ treatment + (1|block), data = data_wrangled)
+
+pm_tot_exotic <- predictmeans::predictmeans(mod_tot_exotic, modelterm = "treatment",
+                                                 pairwise = TRUE, plot = FALSE)
+tot_exotic_p <- pm_tot_exotic$`Pairwise p-value`[2,1]
+
+#8
+mod_tot_native <- lmerTest::lmer(`tot_native` ~ treatment + (1|block), data = data_wrangled)
+
+pm_tot_native <- predictmeans::predictmeans(mod_tot_native, modelterm = "treatment",
+                                            pairwise = TRUE, plot = FALSE)
+tot_native_p <- pm_tot_native$`Pairwise p-value`[2,1]
+
+
+
+p_frame <- data.frame("Plant" = c("Exotic Dicots", "Total Exotics", "Native Dicots","Total Native Monocots","Total Bryophytes", "Total Natives", "Calluna vulgaris", "Total Exotic Monocots"), 
+                      "P-values" = c(exoticdi_p,tot_exotic_p,native_di_p,tot_native_mono_p, tot_bryo_p,tot_native_p,calluna_p, tot_exotic_mono_p ))
+
+
+```
+
+**P values of Herbicide v Biocontrol on the species richness of different plant groupings:** 
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+adj <- p.adjust(p_frame$`P.values`, method = "fdr", n = length(p_frame$`P.values`))
+
+p_frame_adj <- data.frame("Plant" = c("Exotic Dicots", "Total Exotics", "Native Dicots","Total Native Monocots","Total Bryophytes", "Total Natives", "Calluna vulgaris", "Total Exotic Monocots"), 
+                      "P-values" = c(exoticdi_p,tot_exotic_p,native_di_p,tot_native_mono_p, tot_bryo_p,tot_native_p,calluna_p, tot_exotic_mono_p ), 
+                      "Adjusted p-values" = adj)
+p_frame_adj
+```
+
+The number of "metabolites" (which I assume means the different groupings of plants above) treated with Herbicide or Biocontrol declared 'statistically significant' with unadjusted p-values is 4 groups: 
+Exotic Dicots	
+Total Exotics
+Native Dicots
+Total Native Monocots
+When we adjust for false discovery rate, Total Native Monocots no longer shows enough evidence of a significant difference between the treatments. 
+
